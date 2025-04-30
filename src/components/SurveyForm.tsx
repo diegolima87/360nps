@@ -46,7 +46,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         data_fim: initialData.data_fim,
         id_franqueadora: initialData.id_franqueadora || user?.franqueadoraId,
       });
-    } else if (user) {
+    } else if (user?.franqueadoraId) {
       // Set id_franqueadora if user is set but initialData is not
       setFormData(prev => ({
         ...prev,
@@ -80,13 +80,31 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
   };
 
   const validateForm = (): boolean => {
-    // Verificar se id_franqueadora existe
-    if (!formData.id_franqueadora) {
-      setError("Não foi possível identificar sua franqueadora. Por favor, faça login novamente.");
+    if (!user) {
+      setError("Você precisa estar logado para criar uma pesquisa.");
       return false;
     }
+    
+    if (!user.franqueadoraId) {
+      setError("Seu usuário não está associado a nenhuma franqueadora. Contate o suporte.");
+      return false;
+    }
+    
+    // Ensure id_franqueadora exists
+    if (!formData.id_franqueadora) {
+      // Use the one from user context if available
+      if (user.franqueadoraId) {
+        setFormData(prev => ({
+          ...prev,
+          id_franqueadora: user.franqueadoraId
+        }));
+      } else {
+        setError("Não foi possível identificar sua franqueadora. Por favor, faça login novamente.");
+        return false;
+      }
+    }
 
-    // Verificar campos obrigatórios
+    // Check required fields
     if (!formData.nome) {
       setError("O nome da pesquisa é obrigatório");
       return false;
@@ -97,7 +115,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
       return false;
     }
 
-    // Verificar datas
+    // Check dates
     if (!formData.data_inicio || !formData.data_fim) {
       setError("As datas de início e término são obrigatórias");
       return false;
@@ -124,22 +142,13 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         setIsSubmitting(false);
         return;
       }
-
-      console.log("Submitting form with data:", formData);
       
-      // Garantir que temos o ID da franqueadora
+      // Ensure we have the franqueadora ID from the user context
       if (!formData.id_franqueadora && user?.franqueadoraId) {
         formData.id_franqueadora = user.franqueadoraId;
       }
       
-      // Validação final para garantir que temos o ID da franqueadora
-      if (!formData.id_franqueadora) {
-        console.error("Missing franqueadora ID:", { formData, user });
-        toast.error("Erro ao criar pesquisa: ID da franqueadora não encontrado");
-        setError("ID da franqueadora não encontrado. Por favor, verifique seu perfil.");
-        setIsSubmitting(false);
-        return;
-      }
+      console.log("Submitting form with data:", formData);
       
       let result;
       
@@ -164,12 +173,19 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
       }
     } catch (error: any) {
       console.error("Error submitting form:", error);
-      toast.error(`Ocorreu um erro: ${error}`);
+      toast.error(`Ocorreu um erro: ${error.message || error}`);
       setError(error.message || "Erro ao processar seu pedido");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Check if user is franqueado (they can't create surveys)
+  useEffect(() => {
+    if (user && user.role === 'franqueado') {
+      setError("Apenas franqueadoras podem criar ou editar pesquisas.");
+    }
+  }, [user]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -190,6 +206,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
           value={formData.nome}
           onChange={(e) => handleChange("nome", e.target.value)}
           required
+          disabled={isSubmitting || (user?.role === 'franqueado')}
         />
       </div>
 
@@ -200,6 +217,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         <RadioGroup
           value={formData.publico_alvo}
           onValueChange={(value: "cliente" | "franqueado") => handleChange("publico_alvo", value)}
+          disabled={isSubmitting || (user?.role === 'franqueado')}
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="cliente" id="cliente" />
@@ -222,6 +240,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
           onChange={(e) => handleChange("pergunta", e.target.value)}
           className="resize-none"
           required
+          disabled={isSubmitting || (user?.role === 'franqueado')}
         />
         <p className="text-xs text-muted-foreground mt-1">
           A escala de 0-10 será exibida automaticamente.
@@ -238,6 +257,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
               <Button
                 variant="outline"
                 className="w-full justify-start text-left font-normal"
+                disabled={isSubmitting || (user?.role === 'franqueado')}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {formData.data_inicio ? 
@@ -253,6 +273,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
                 onSelect={handleStartDateSelect}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
+                disabled={(user?.role === 'franqueado')}
               />
             </PopoverContent>
           </Popover>
@@ -267,6 +288,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
               <Button
                 variant="outline"
                 className="w-full justify-start text-left font-normal"
+                disabled={isSubmitting || (user?.role === 'franqueado')}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {formData.data_fim ? 
@@ -283,12 +305,12 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
                 disabled={(date) => {
-                  // Não permitir selecionar datas anteriores à data de início
+                  // Don't allow selecting dates before the start date
                   if (formData.data_inicio) {
                     return date < new Date(formData.data_inicio);
                   }
                   return false;
-                }}
+                } || (user?.role === 'franqueado')}
               />
             </PopoverContent>
           </Popover>
@@ -303,7 +325,11 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSubmitting} className="bg-gradient">
+        <Button 
+          type="submit" 
+          disabled={isSubmitting || (user?.role === 'franqueado')} 
+          className="bg-gradient"
+        >
           {isSubmitting
             ? "Salvando..."
             : isEditing

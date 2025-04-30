@@ -23,7 +23,7 @@ export const checkUserExists = async (email: string): Promise<boolean> => {
   try {
     console.log("Checking if user exists:", email);
     
-    // Use the usuarios table to check if a user with this email exists
+    // Check auth.users instead of usuarios table since emails are guaranteed unique there
     const { data, error } = await supabase
       .from("usuarios")
       .select("email")
@@ -52,163 +52,149 @@ export const registerUser = async (
   try {
     console.log(`Starting registration for ${email} as ${role}...`);
     
-    // Start a transaction
-    try {
-      // Instead of using rpc for transactions, we'll manage it at the application level
-      
-      // Step 1: Check if the user already exists
-      const { data: existingUsers, error: lookupError } = await supabase
-        .from("usuarios")
-        .select("email")
-        .eq("email", email)
-        .maybeSingle();
-      
-      if (lookupError) {
-        console.error("Error checking for existing user:", lookupError);
-        return {
-          success: false,
-          error: "Erro ao verificar usuário existente. Por favor, tente novamente."
-        };
-      }
-      
-      if (existingUsers) {
-        console.log("User already exists:", email);
-        return { 
-          success: false, 
-          error: "Este email já está cadastrado. Tente fazer login ou recuperar sua senha." 
-        };
-      }
-      
-      // Step 2: Register user with Supabase Auth
-      console.log("Creating auth user...");
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            role,
-            businessName
-          }
-        }
-      });
-      
-      if (authError) {
-        console.error("Auth registration error:", authError);
-        return {
-          success: false,
-          error: authError.message || "Erro ao criar conta. Por favor, tente novamente."
-        };
-      }
-      
-      if (!authData.user) {
-        console.error("No user data returned from auth signup");
-        return {
-          success: false,
-          error: "Dados de usuário não retornados. Por favor, tente novamente."
-        };
-      }
-      
-      console.log("Auth user created successfully:", authData.user.id);
-      
-      try {
-        // Step 3: Create franqueadora if role is franqueadora
-        let franqueadoraId: string | null = null;
-        
-        if (role === "franqueadora") {
-          console.log("Creating franqueadora record");
-          const { data: franqueadoraData, error: franqueadoraError } = await supabase
-            .from("franqueadoras")
-            .insert([
-              { 
-                nome: businessName,
-                cor_primaria: '#00537e', // Cor padrão conforme solicitado
-                logo_url: '' // Valor vazio por padrão
-              }
-            ])
-            .select()
-            .single();
-          
-          if (franqueadoraError) {
-            console.error("Franqueadora creation error:", franqueadoraError);
-            throw franqueadoraError;
-          } else {
-            console.log("Franqueadora creation successful:", franqueadoraData);
-            franqueadoraId = franqueadoraData.id;
-          }
-        }
-        
-        // Step 4: Create user record in usuarios table
-        console.log("Creating usuario record");
-        const { error: userError } = await supabase
-          .from("usuarios")
-          .insert([
-            { 
-              id: authData.user.id,
-              nome: name,
-              email,
-              role,
-              senha: password, // Note: This is not secure, but follows the current app architecture
-              id_franqueadora: franqueadoraId
-            }
-          ]);
-        
-        if (userError) {
-          console.error("User creation error:", userError);
-          throw userError;
-        }
-        
-        // Step 5: Set up trial period (7 days)
-        const today = new Date();
-        const trialEndDate = new Date();
-        trialEndDate.setDate(today.getDate() + 7); // Set trial for 7 days
-        
-        console.log("Creating assinatura record for 7-day trial");
-        const { error: assinaturaError } = await supabase
-          .from("assinaturas")
-          .insert([
-            { 
-              id_usuario: authData.user.id,
-              data_inicio: today.toISOString().split('T')[0],
-              data_fim: trialEndDate.toISOString().split('T')[0],
-              plano: "freemium",
-              status: "ativo"
-            }
-          ]);
-        
-        if (assinaturaError) {
-          console.error("Assinatura creation error:", assinaturaError);
-          throw assinaturaError;
-        }
-        
-        console.log("Registration process completed successfully!");
-        return { success: true };
-        
-      } catch (error: any) {
-        console.error("Error in registration process:", error);
-        
-        // Try to cleanup the auth user since registration failed
-        try {
-          console.log("Attempting to clean up auth user after database error");
-          // Note: admin.deleteUser is not accessible via client SDK
-          // Instead, we'll just attempt to sign out
-          await supabase.auth.signOut();
-        } catch (cleanupError) {
-          console.error("Failed to clean up auth user:", cleanupError);
-        }
-        
-        return {
-          success: false,
-          error: error.message || "Erro ao criar perfil de usuário. Por favor, tente novamente."
-        };
-      }
-      
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      
+    // Check if the user already exists first
+    const { data: existingUsers, error: lookupError } = await supabase
+      .from("usuarios")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+    
+    if (lookupError) {
+      console.error("Error checking for existing user:", lookupError);
+      return {
+        success: false,
+        error: "Erro ao verificar usuário existente. Por favor, tente novamente."
+      };
+    }
+    
+    if (existingUsers) {
+      console.log("User already exists:", email);
       return { 
         success: false, 
-        error: error.message || "Erro desconhecido ao criar conta. Por favor, tente novamente."
+        error: "Este email já está cadastrado. Tente fazer login ou recuperar sua senha." 
+      };
+    }
+    
+    // Step 1: Register user with Supabase Auth
+    console.log("Creating auth user...");
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          role,
+          businessName
+        }
+      }
+    });
+    
+    if (authError) {
+      console.error("Auth registration error:", authError);
+      return {
+        success: false,
+        error: authError.message || "Erro ao criar conta. Por favor, tente novamente."
+      };
+    }
+    
+    if (!authData.user) {
+      console.error("No user data returned from auth signup");
+      return {
+        success: false,
+        error: "Dados de usuário não retornados. Por favor, tente novamente."
+      };
+    }
+    
+    console.log("Auth user created successfully:", authData.user.id);
+
+    // Step 2: Create franqueadora if role is franqueadora
+    let franqueadoraId = null;
+    try {
+      if (role === "franqueadora") {
+        console.log("Creating franqueadora record");
+        const { data: franqueadoraData, error: franqueadoraError } = await supabase
+          .from("franqueadoras")
+          .insert([
+            { 
+              nome: businessName,
+              cor_primaria: '#00537e', // Default color as requested
+              logo_url: '' // Empty value by default
+            }
+          ])
+          .select()
+          .single();
+        
+        if (franqueadoraError) {
+          console.error("Franqueadora creation error:", franqueadoraError);
+          throw franqueadoraError;
+        } else {
+          console.log("Franqueadora creation successful:", franqueadoraData);
+          franqueadoraId = franqueadoraData.id;
+        }
+      }
+      
+      // Step 3: Create user record in usuarios table
+      console.log("Creating usuario record");
+      const { error: userError } = await supabase
+        .from("usuarios")
+        .insert([
+          { 
+            id: authData.user.id,
+            nome: name,
+            email,
+            role,
+            senha: password, // Note: This is not secure, but follows the current app architecture
+            id_franqueadora: franqueadoraId
+          }
+        ]);
+      
+      if (userError) {
+        console.error("User creation error:", userError);
+        throw userError;
+      }
+      
+      // Step 4: Set up trial period (7 days)
+      const today = new Date();
+      const trialEndDate = new Date();
+      trialEndDate.setDate(today.getDate() + 7); // Set trial for 7 days
+      
+      console.log("Creating assinatura record for 7-day trial");
+      const { error: assinaturaError } = await supabase
+        .from("assinaturas")
+        .insert([
+          { 
+            id_usuario: authData.user.id,
+            data_inicio: today.toISOString().split('T')[0],
+            data_fim: trialEndDate.toISOString().split('T')[0],
+            plano: "freemium",
+            status: "ativo"
+          }
+        ]);
+      
+      if (assinaturaError) {
+        console.error("Assinatura creation error:", assinaturaError);
+        throw assinaturaError;
+      }
+      
+      console.log("Registration process completed successfully!");
+      return { success: true };
+      
+    } catch (error: any) {
+      console.error("Error in registration process:", error);
+      
+      // Try to cleanup the auth user since registration failed
+      try {
+        console.log("Attempting to clean up auth user after database error");
+        // Note: admin.deleteUser is not accessible via client SDK
+        // Instead, we'll just attempt to sign out
+        await supabase.auth.signOut();
+      } catch (cleanupError) {
+        console.error("Failed to clean up auth user:", cleanupError);
+      }
+      
+      return {
+        success: false,
+        error: error.message || "Erro ao criar perfil de usuário. Por favor, tente novamente."
       };
     }
     
@@ -240,7 +226,7 @@ export const fetchUserData = async (userId: string) => {
       .from("usuarios")
       .select("*")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
     
     if (userError) {
       console.error("Error fetching user data:", userError);
@@ -287,4 +273,3 @@ export const fetchUserData = async (userId: string) => {
     return null;
   }
 };
-

@@ -20,7 +20,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         console.log("Auth state changed:", _event, session?.user?.id);
         setSession(session);
         
@@ -46,14 +46,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 }
               } else {
                 console.log("No user data found, potentially a new auth user without profile");
-                toast.error("Erro ao carregar dados do usuário. Por favor, tente novamente.");
                 setUser(null);
-                await logoutUser(); // Logout if user data cannot be found
+                setLoading(false);
               }
             } catch (error) {
               console.error("Error in auth state change handler:", error);
               toast.error("Erro ao carregar perfil. Por favor, faça login novamente.");
-            } finally {
               setLoading(false);
             }
           }, 0);
@@ -136,6 +134,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (!success) {
         console.error("Registration failed:", error);
         toast.error(error || "Falha ao criar conta. Tente novamente.");
+        setLoading(false);
         return false;
       }
       

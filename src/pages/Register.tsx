@@ -23,7 +23,7 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { register, loading } = useSupabaseAuth();
+  const { register, loading, user } = useSupabaseAuth();
   
   // Reset businessName when role changes for better UX
   useEffect(() => {
@@ -34,6 +34,13 @@ export default function Register() {
   useEffect(() => {
     setIsLoading(loading);
   }, [loading]);
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
   
   const validateForm = () => {
     // Simple validation
@@ -81,6 +88,7 @@ export default function Register() {
       console.log("Registration result:", success);
       
       if (success) {
+        toast.success("Conta criada com sucesso! Você será redirecionado para o dashboard.");
         navigate("/dashboard");
       }
     } catch (error: any) {
