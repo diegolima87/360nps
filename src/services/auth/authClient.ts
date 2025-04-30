@@ -7,13 +7,16 @@ import { toast } from "sonner";
  */
 export const loginUser = async (email: string, password: string): Promise<boolean> => {
   try {
+    console.log("Attempting login for:", email);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
+      console.error("Login error:", error);
       toast.error(error.message);
       return false;
     }
     
+    console.log("Login successful");
     return true;
   } catch (error) {
     console.error("Login error:", error);
@@ -26,8 +29,10 @@ export const loginUser = async (email: string, password: string): Promise<boolea
  */
 export const logoutUser = async (): Promise<void> => {
   try {
+    console.log("Logging out user...");
     await supabase.auth.signOut();
     toast.success("Você saiu com sucesso.");
+    console.log("Logout successful");
   } catch (error) {
     console.error("Logout error:", error);
   }
@@ -46,6 +51,8 @@ export const registerAuthUser = async (
   }
 ): Promise<{ user: any; error: any }> => {
   try {
+    console.log("Registering auth user with email:", email);
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -54,14 +61,17 @@ export const registerAuthUser = async (
           name: userData.name,
           role: userData.role,
           businessName: userData.businessName
-        }
+        },
+        emailRedirectTo: window.location.origin + '/dashboard'
       }
     });
 
     if (error) {
+      console.error("Auth user registration error:", error);
       return { user: null, error };
     }
 
+    console.log("Auth user registered successfully:", data.user?.id);
     return { user: data.user, error: null };
   } catch (error) {
     console.error("Error registering auth user:", error);

@@ -47,8 +47,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
               } else {
                 console.log("No user data found, potentially a new auth user without profile");
                 setUser(null);
-                setLoading(false);
               }
+              setLoading(false);
             } catch (error) {
               console.error("Error in auth state change handler:", error);
               toast.error("Erro ao carregar perfil. Por favor, faça login novamente.");

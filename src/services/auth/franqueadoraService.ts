@@ -8,15 +8,17 @@ export const createFranqueadora = async (businessName: string): Promise<{ id: st
   try {
     console.log("Creating franqueadora record:", businessName);
     
+    const franqueadoraData = { 
+      nome: businessName,
+      cor_primaria: '#00537e', // Default color as requested
+      logo_url: '' // Empty value by default
+    };
+    
+    console.log("Franqueadora data to insert:", franqueadoraData);
+    
     const { data, error } = await supabase
       .from("franqueadoras")
-      .insert([
-        { 
-          nome: businessName,
-          cor_primaria: '#00537e', // Default color as requested
-          logo_url: '' // Empty value by default
-        }
-      ])
+      .insert([franqueadoraData])
       .select()
       .single();
     

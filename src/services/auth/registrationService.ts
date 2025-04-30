@@ -50,6 +50,7 @@ export const registerUser = async (
     let franqueadoraId = null;
     
     if (role === "franqueadora") {
+      console.log("Creating franqueadora record for:", businessName);
       const { id, error: franqueadoraError } = await createFranqueadora(businessName);
       
       if (franqueadoraError || !id) {
@@ -60,10 +61,12 @@ export const registerUser = async (
         };
       }
       
+      console.log("Franqueadora created successfully with ID:", id);
       franqueadoraId = id;
     }
     
     // Step 3: Create user record in usuarios table
+    console.log("Creating user record in database...");
     const { success: userCreated, error: userError } = await createUserRecord(
       authUser.id,
       name,
@@ -81,7 +84,10 @@ export const registerUser = async (
       };
     }
     
+    console.log("User record created successfully");
+    
     // Step 4: Set up trial period
+    console.log("Setting up trial subscription...");
     const { success: trialCreated, error: trialError } = await createTrialSubscription(authUser.id);
     
     if (!trialCreated) {
@@ -92,6 +98,7 @@ export const registerUser = async (
       };
     }
     
+    console.log("Trial subscription created successfully");
     console.log("Registration process completed successfully!");
     return { success: true };
     

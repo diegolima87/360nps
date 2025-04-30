@@ -39,24 +39,30 @@ export const createUserRecord = async (
   franqueadoraId: string | null
 ): Promise<{ success: boolean; error?: any }> => {
   try {
+    console.log("Creating user record with ID:", userId);
+    
+    const userData = { 
+      id: userId,
+      nome: name,
+      email,
+      role,
+      senha: password,
+      id_franqueadora: franqueadoraId,
+      data_criacao: new Date().toISOString()
+    };
+    
+    console.log("User data to insert:", {...userData, senha: "[REDACTED]"});
+    
     const { error } = await supabase
       .from("usuarios")
-      .insert([
-        { 
-          id: userId,
-          nome: name,
-          email,
-          role,
-          senha: password,
-          id_franqueadora: franqueadoraId
-        }
-      ]);
+      .insert([userData]);
     
     if (error) {
       console.error("User creation error:", error);
       return { success: false, error };
     }
     
+    console.log("User record created successfully");
     return { success: true };
   } catch (error) {
     console.error("Error creating user record:", error);
@@ -88,7 +94,7 @@ export const fetchUserData = async (userId: string): Promise<UserData | null> =>
       return null;
     }
     
-    console.log("User data retrieved:", userData);
+    console.log("User data retrieved:", {...userData, senha: "[REDACTED]"});
     
     // Get subscription data
     const { data: subscriptionData, error: subscriptionError } = await supabase
@@ -111,7 +117,7 @@ export const fetchUserData = async (userId: string): Promise<UserData | null> =>
       id: userData.id,
       name: userData.nome,
       email: userData.email,
-      role: userData.role as "franqueadora" | "franqueado",
+      role: userData.role,
       franqueadoraId: userData.id_franqueadora,
       trialEndDate: subscriptionData?.data_fim || null,
       subscriptionStatus: subscriptionData?.status || "inativo",
