@@ -11,7 +11,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { SurveyResult } from "@/services/surveyService";
 import { format } from "date-fns";
-import { calculateRespondentType } from "@/components/NPSCalculator";
+import { calculateRespondentType, NPSRating } from "@/components/NPSCalculator";
 
 interface FranchiseeResultCardProps {
   franqueado: { id: string; nome: string; email: string };
@@ -69,13 +69,15 @@ export function FranchiseeResultCard({ franqueado, respostas, mediaNotas }: Fran
             <AccordionContent>
               <div className="space-y-4 mt-2">
                 {respostas.map((response) => {
-                  const responseType = response.tipo_resposta || calculateRespondentType(response.nota_nps);
+                  // Garantir que nota_nps seja um NPSRating válido (0-10)
+                  const nota = Math.min(Math.max(0, response.nota_nps || 0), 10) as NPSRating;
+                  const responseType = response.tipo_resposta || calculateRespondentType(nota);
                   
                   return (
                     <div key={response.id} className="border rounded-md p-3 space-y-2">
                       <div className="flex justify-between items-center">
                         <div>
-                          <span className={`text-xl font-semibold ${getScoreColor(response.nota_nps)}`}>
+                          <span className={`text-xl font-semibold ${getScoreColor(response.nota_nps || 0)}`}>
                             {response.nota_nps}
                           </span>
                           <Badge variant="outline" className={`ml-2 ${getResponseTypeColor(responseType)}`}>

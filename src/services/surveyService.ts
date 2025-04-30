@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { NPSRating } from "@/components/NPSCalculator";
 
 // Tipos para pesquisas
 export interface Survey {
@@ -47,7 +48,13 @@ export const createSurvey = async (survey: Omit<Survey, "id" | "link">): Promise
       
     if (error) throw error;
     
-    return { success: true, data };
+    // Converter o tipo dos dados para garantir consistência
+    const typedData: Survey = {
+      ...data,
+      publico_alvo: data.publico_alvo as "cliente" | "franqueado"
+    };
+    
+    return { success: true, data: typedData };
   } catch (error: any) {
     console.error("Error creating survey:", error);
     return { success: false, error: error.message };
@@ -64,7 +71,13 @@ export const listSurveys = async (): Promise<{ success: boolean; data?: Survey[]
       
     if (error) throw error;
     
-    return { success: true, data };
+    // Converter o tipo dos dados para garantir consistência
+    const typedData: Survey[] = data.map(item => ({
+      ...item,
+      publico_alvo: item.publico_alvo as "cliente" | "franqueado"
+    }));
+    
+    return { success: true, data: typedData };
   } catch (error: any) {
     console.error("Error listing surveys:", error);
     return { success: false, error: error.message };
@@ -82,7 +95,13 @@ export const getSurvey = async (id: string): Promise<{ success: boolean; data?: 
       
     if (error) throw error;
     
-    return { success: true, data };
+    // Converter o tipo dos dados para garantir consistência
+    const typedData: Survey = {
+      ...data,
+      publico_alvo: data.publico_alvo as "cliente" | "franqueado"
+    };
+    
+    return { success: true, data: typedData };
   } catch (error: any) {
     console.error("Error getting survey:", error);
     return { success: false, error: error.message };
@@ -101,7 +120,13 @@ export const updateSurvey = async (id: string, updates: Partial<Omit<Survey, "id
       
     if (error) throw error;
     
-    return { success: true, data };
+    // Converter o tipo dos dados para garantir consistência
+    const typedData: Survey = {
+      ...data,
+      publico_alvo: data.publico_alvo as "cliente" | "franqueado"
+    };
+    
+    return { success: true, data: typedData };
   } catch (error: any) {
     console.error("Error updating survey:", error);
     return { success: false, error: error.message };
@@ -142,7 +167,13 @@ export const getSurveyResults = async (surveyId: string): Promise<{ success: boo
       
     if (error) throw error;
     
-    return { success: true, data };
+    // Converter o tipo dos dados para garantir consistência
+    const typedData: SurveyResult[] = data.map(item => ({
+      ...item,
+      tipo_resposta: (item.tipo_resposta || "detrator") as "promotor" | "passivo" | "detrator"
+    }));
+    
+    return { success: true, data: typedData };
   } catch (error: any) {
     console.error("Error getting survey results:", error);
     return { success: false, error: error.message };
@@ -193,7 +224,12 @@ export const getSurveyResultsByFranchisee = async (surveyId: string): Promise<{
         acc.push(franchiseeGroup);
       }
       
-      franchiseeGroup.respostas.push(item);
+      // Converter o tipo antes de adicionar ao grupo
+      franchiseeGroup.respostas.push({
+        ...item,
+        tipo_resposta: (item.tipo_resposta || "detrator") as "promotor" | "passivo" | "detrator"
+      });
+      
       return acc;
     }, []);
     
