@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useAuth } from "../contexts/AuthContext";
+import { useSupabaseAuth } from "../contexts/SupabaseAuthContext";
 import { LogIn } from "lucide-react";
 import NavBar from "../components/NavBar";
 
@@ -15,7 +15,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login } = useSupabaseAuth();
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

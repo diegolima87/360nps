@@ -9,7 +9,207 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      assinaturas: {
+        Row: {
+          data_fim: string
+          data_inicio: string
+          id_usuario: string | null
+          plano: string | null
+          status: string | null
+        }
+        Insert: {
+          data_fim: string
+          data_inicio: string
+          id_usuario?: string | null
+          plano?: string | null
+          status?: string | null
+        }
+        Update: {
+          data_fim?: string
+          data_inicio?: string
+          id_usuario?: string | null
+          plano?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinaturas_id_usuario_fkey"
+            columns: ["id_usuario"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      franqueadoras: {
+        Row: {
+          cor_primaria: string | null
+          id: string
+          logo_url: string | null
+          nome: string
+        }
+        Insert: {
+          cor_primaria?: string | null
+          id?: string
+          logo_url?: string | null
+          nome: string
+        }
+        Update: {
+          cor_primaria?: string | null
+          id?: string
+          logo_url?: string | null
+          nome?: string
+        }
+        Relationships: []
+      }
+      franqueados: {
+        Row: {
+          email: string
+          id: string
+          id_franqueadora: string | null
+          nome: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          id_franqueadora?: string | null
+          nome: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          id_franqueadora?: string | null
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "franqueados_id_franqueadora_fkey"
+            columns: ["id_franqueadora"]
+            isOneToOne: false
+            referencedRelation: "franqueadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisas: {
+        Row: {
+          data_fim: string
+          data_inicio: string
+          id: string
+          id_franqueadora: string | null
+          link: string | null
+          nome: string
+          pergunta: string
+          publico_alvo: string
+        }
+        Insert: {
+          data_fim: string
+          data_inicio: string
+          id?: string
+          id_franqueadora?: string | null
+          link?: string | null
+          nome: string
+          pergunta: string
+          publico_alvo: string
+        }
+        Update: {
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          id_franqueadora?: string | null
+          link?: string | null
+          nome?: string
+          pergunta?: string
+          publico_alvo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisas_id_franqueadora_fkey"
+            columns: ["id_franqueadora"]
+            isOneToOne: false
+            referencedRelation: "franqueadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respostas: {
+        Row: {
+          autorizacao: boolean | null
+          comentario: string | null
+          data_envio: string | null
+          id: string
+          id_franqueado: string | null
+          id_pesquisa: string | null
+          nota_nps: number | null
+          tipo_resposta: string | null
+        }
+        Insert: {
+          autorizacao?: boolean | null
+          comentario?: string | null
+          data_envio?: string | null
+          id?: string
+          id_franqueado?: string | null
+          id_pesquisa?: string | null
+          nota_nps?: number | null
+          tipo_resposta?: string | null
+        }
+        Update: {
+          autorizacao?: boolean | null
+          comentario?: string | null
+          data_envio?: string | null
+          id?: string
+          id_franqueado?: string | null
+          id_pesquisa?: string | null
+          nota_nps?: number | null
+          tipo_resposta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respostas_id_franqueado_fkey"
+            columns: ["id_franqueado"]
+            isOneToOne: false
+            referencedRelation: "franqueados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respostas_id_pesquisa_fkey"
+            columns: ["id_pesquisa"]
+            isOneToOne: false
+            referencedRelation: "pesquisas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usuarios: {
+        Row: {
+          data_criacao: string | null
+          email: string
+          id: string
+          id_franqueadora: string | null
+          nome: string
+          role: string
+          senha: string
+        }
+        Insert: {
+          data_criacao?: string | null
+          email: string
+          id?: string
+          id_franqueadora?: string | null
+          nome: string
+          role: string
+          senha: string
+        }
+        Update: {
+          data_criacao?: string | null
+          email?: string
+          id?: string
+          id_franqueadora?: string | null
+          nome?: string
+          role?: string
+          senha?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

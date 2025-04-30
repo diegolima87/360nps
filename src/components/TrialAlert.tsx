@@ -2,11 +2,11 @@
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useAuth } from "../contexts/AuthContext";
+import { useSupabaseAuth } from "../contexts/SupabaseAuthContext";
 import { toast } from "sonner";
 
 export function TrialAlert() {
-  const { user, isTrialActive } = useAuth();
+  const { user, isTrialActive } = useSupabaseAuth();
   
   if (isTrialActive || !user) return null;
   

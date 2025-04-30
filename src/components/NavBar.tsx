@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useSupabaseAuth } from "../contexts/SupabaseAuthContext";
 import { Button } from "@/components/ui/button";
 import { 
   BarChart3, 
@@ -16,13 +16,12 @@ import {
 import { toast } from "sonner";
 
 export function NavBar() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useSupabaseAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    toast.success("Você saiu com sucesso.");
+  const handleLogout = async () => {
+    await logout();
   };
 
   const toggleMobileMenu = () => {

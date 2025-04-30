@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { useAuth } from "../contexts/AuthContext";
+import { useSupabaseAuth } from "../contexts/SupabaseAuthContext";
 import { UserPlus } from "lucide-react";
 import NavBar from "../components/NavBar";
 
@@ -20,7 +19,7 @@ export default function Register() {
   const [role, setRole] = useState<"franqueadora" | "franqueado">("franqueadora");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register } = useSupabaseAuth();
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
