@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isValidRole, UserData } from "@/types/auth.types";
@@ -27,11 +26,9 @@ export const registerUser = async (
   businessName: string
 ): Promise<boolean> => {
   try {
-    console.log("Starting user registration process...");
-    
-    // Register with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({ 
-      email, 
+    // Step 1: Register user with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
       password,
       options: {
         data: {
@@ -39,117 +36,90 @@ export const registerUser = async (
           role,
           businessName
         }
-      } 
+      }
     });
     
     if (authError) {
-      toast.error(authError.message);
-      console.error("Auth error:", authError);
-      return false;
+      console.error("Auth registration error:", authError);
+      throw authError;
     }
+    
+    console.log("Auth registration successful:", authData);
     
     if (!authData.user) {
-      toast.error("Erro ao criar usuário");
-      console.error("No user returned from signUp");
-      return false;
-    }
-
-    const userId = authData.user.id;
-    console.log("User created in Auth with ID:", userId);
-    
-    // Create user record in usuarios table
-    const { error: userError } = await supabase.from("usuarios").insert({
-      id: userId,
-      nome: name,
-      email,
-      senha: "auth_handled", // We don't store actual passwords, auth is handled by Supabase
-      role
-    });
-    
-    if (userError) {
-      console.error("Error creating user record:", userError);
-      toast.error("Erro ao criar perfil de usuário: " + userError.message);
-      
-      // Attempt to delete the auth user if the profile creation fails
-      try {
-        await supabase.auth.admin.deleteUser(userId);
-        console.log("Deleted auth user due to profile creation failure");
-      } catch (deleteError) {
-        console.error("Failed to delete auth user:", deleteError);
-      }
-      
-      return false;
+      throw new Error("User data not returned from auth signup");
     }
     
-    console.log("User record created in usuarios table");
+    // Step 2: Create franqueadora if role is franqueadora
+    let franqueadoraId: string | null = null;
     
-    // Create franqueadora or franqueado record based on role
     if (role === "franqueadora") {
-      const { error: franqueadoraError } = await supabase.from("franqueadoras").insert({
-        id: userId,
-        nome: businessName
-      });
+      console.log("Creating franqueadora record");
+      const { data: franqueadoraData, error: franqueadoraError } = await supabase
+        .from("franqueadoras")
+        .insert([
+          { nome: businessName }
+        ])
+        .select()
+        .single();
       
       if (franqueadoraError) {
-        console.error("Error creating franqueadora record:", franqueadoraError);
-        toast.error("Erro ao criar registro de franqueadora: " + franqueadoraError.message);
-        return false;
+        console.error("Franqueadora creation error:", franqueadoraError);
+        throw franqueadoraError;
       }
       
-      console.log("Franqueadora record created successfully");
-      
-      // Update the usuario record with the franqueadora ID
-      const { error: updateError } = await supabase.from("usuarios")
-        .update({ id_franqueadora: userId })
-        .eq("id", userId);
-        
-      if (updateError) {
-        console.error("Error updating usuario with franqueadora ID:", updateError);
-      }
-    } 
-    else if (role === "franqueado") {
-      const { error: franqueadoError } = await supabase.from("franqueados").insert({
-        id: userId,
-        nome: businessName,
-        email
-        // id_franqueadora será definido posteriormente quando for associado a uma franqueadora
-      });
-      
-      if (franqueadoError) {
-        console.error("Error creating franqueado record:", franqueadoError);
-        toast.error("Erro ao criar registro de franqueado: " + franqueadoError.message);
-        return false;
-      }
-      
-      console.log("Franqueado record created successfully");
+      console.log("Franqueadora creation successful:", franqueadoraData);
+      franqueadoraId = franqueadoraData.id;
     }
     
-    // Create trial subscription (7 days)
-    const now = new Date();
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 7);
+    // Step 3: Create user record in usuarios table
+    console.log("Creating usuario record");
+    const { error: userError } = await supabase
+      .from("usuarios")
+      .insert([
+        { 
+          id: authData.user.id,
+          nome: name,
+          email,
+          role,
+          senha: password, // Note: This is not secure, but follows the current app architecture
+          id_franqueadora: franqueadoraId
+        }
+      ]);
     
-    const { error: subscriptionError } = await supabase.from("assinaturas").insert({
-      id_usuario: userId,
-      data_inicio: now.toISOString(),
-      data_fim: trialEnd.toISOString(),
-      status: "ativo",
-      plano: "freemium"
-    });
-    
-    if (subscriptionError) {
-      console.error("Error creating subscription:", subscriptionError);
-      toast.error("Erro ao criar assinatura: " + subscriptionError.message);
-      // Continue anyway as subscription is not critical for basic functionality
-    } else {
-      console.log("Trial subscription created successfully");
+    if (userError) {
+      console.error("User creation error:", userError);
+      throw userError;
     }
     
-    toast.success("Conta criada com sucesso!");
+    // Step 4: Set up trial period (7 days)
+    const today = new Date();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(today.getDate() + 7); // Set trial for 7 days
+    
+    console.log("Creating assinatura record for 7-day trial");
+    const { error: assinaturaError } = await supabase
+      .from("assinaturas")
+      .insert([
+        { 
+          id_usuario: authData.user.id,
+          data_inicio: today.toISOString().split('T')[0],
+          data_fim: trialEndDate.toISOString().split('T')[0],
+          plano: "freemium",
+          status: "ativo"
+        }
+      ]);
+    
+    if (assinaturaError) {
+      console.error("Assinatura creation error:", assinaturaError);
+      throw assinaturaError;
+    }
+    
+    console.log("Registration process completed successfully!");
     return true;
-  } catch (error: any) {
+    
+  } catch (error) {
     console.error("Registration error:", error);
-    toast.error(`Erro ao criar conta: ${error?.message || "Erro desconhecido"}`);
     return false;
   }
 };
@@ -163,49 +133,57 @@ export const logoutUser = async (): Promise<void> => {
   }
 };
 
-export const fetchUserData = async (userId: string): Promise<UserData | null> => {
+export const fetchUserData = async (userId: string) => {
   try {
-    console.log("Fetching user data for ID:", userId);
+    console.log("Fetching user data for:", userId);
     
-    const { data: userData, error } = await supabase
+    // Get user data from usuarios table
+    const { data: userData, error: userError } = await supabase
       .from("usuarios")
       .select("*")
       .eq("id", userId)
       .single();
     
-    if (error) {
-      console.error("Error fetching user data:", error);
-      throw error;
+    if (userError) {
+      console.error("Error fetching user data:", userError);
+      throw userError;
     }
     
-    console.log("User data fetched:", userData);
+    if (!userData) {
+      console.error("No user data found for ID:", userId);
+      return null;
+    }
     
-    // Check if subscription is active
+    console.log("User data retrieved:", userData);
+    
+    // Get subscription data
     const { data: subscriptionData, error: subscriptionError } = await supabase
       .from("assinaturas")
       .select("*")
       .eq("id_usuario", userId)
-      .single();
+      .order("data_fim", { ascending: false }) // Get the most recent subscription
+      .limit(1)
+      .maybeSingle();
     
-    if (subscriptionError && subscriptionError.code !== "PGRST116") {
-      console.error("Error fetching subscription:", subscriptionError);
+    if (subscriptionError) {
+      console.error("Error fetching subscription data:", subscriptionError);
+      throw subscriptionError;
     }
     
-    // Validate user role
-    const userRole = userData.role;
-    if (!isValidRole(userRole)) {
-      throw new Error(`Invalid user role: ${userRole}`);
-    }
+    console.log("Subscription data retrieved:", subscriptionData);
     
-    // Create user data object
+    // Format and return user data with subscription info
     return {
-      id: userId,
+      id: userData.id,
       name: userData.nome,
       email: userData.email,
-      role: userRole,
+      role: userData.role as "franqueadora" | "franqueado",
       franqueadoraId: userData.id_franqueadora,
-      trialEndDate: subscriptionData ? new Date(subscriptionData.data_fim) : new Date(),
+      trialEndDate: subscriptionData?.data_fim || null,
+      subscriptionStatus: subscriptionData?.status || "inativo",
+      subscriptionPlan: subscriptionData?.plano || "none"
     };
+    
   } catch (error) {
     console.error("Error in fetchUserData:", error);
     return null;

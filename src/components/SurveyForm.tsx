@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -80,6 +79,14 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         formData.id_franqueadora = user.franqueadoraId;
       }
       
+      // Add extra validation to ensure we have franqueadora ID
+      if (!formData.id_franqueadora) {
+        console.error("Missing franqueadora ID:", { formData, user });
+        toast.error("Erro ao criar pesquisa: ID da franqueadora não encontrado");
+        setIsSubmitting(false);
+        return;
+      }
+      
       let result;
       
       if (isEditing && initialData) {
@@ -97,6 +104,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
       }
       
       if (!result.success) {
+        console.error("API error response:", result.error);
         toast.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} pesquisa: ${result.error}`);
       }
     } catch (error) {
