@@ -7,7 +7,9 @@ export interface UserData {
   email: string;
   role: "admin" | "franqueadora" | "franqueado";
   franqueadoraId?: string;
-  trialEndDate: Date;
+  trialEndDate: string | null;
+  subscriptionStatus?: string;
+  subscriptionPlan?: string;
 }
 
 export interface AuthContextType {
