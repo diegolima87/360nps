@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Survey, createSurvey, updateSurvey } from "@/services/surveyService";
 import { toast } from "sonner";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface SurveyFormProps {
   initialData?: Survey;
@@ -23,6 +25,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
   const navigate = useNavigate();
   const { user } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<Omit<Survey, "id" | "link">>({
     nome: "",
@@ -52,8 +55,16 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     }
   }, [initialData, isEditing, user]);
 
+  // Log whenever franqueadoraId changes to help debugging
+  useEffect(() => {
+    console.log("Current franqueadora ID in form:", formData.id_franqueadora);
+    console.log("User context franqueadora ID:", user?.franqueadoraId);
+  }, [formData.id_franqueadora, user?.franqueadoraId]);
+
   const handleChange = (field: keyof typeof formData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when form changes
+    setError(null);
   };
 
   const handleStartDateSelect = (date: Date | undefined) => {
@@ -68,21 +79,64 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     }
   };
 
+  const validateForm = (): boolean => {
+    // Verificar se id_franqueadora existe
+    if (!formData.id_franqueadora) {
+      setError("Não foi possível identificar sua franqueadora. Por favor, faça login novamente.");
+      return false;
+    }
+
+    // Verificar campos obrigatórios
+    if (!formData.nome) {
+      setError("O nome da pesquisa é obrigatório");
+      return false;
+    }
+
+    if (!formData.pergunta) {
+      setError("A pergunta NPS é obrigatória");
+      return false;
+    }
+
+    // Verificar datas
+    if (!formData.data_inicio || !formData.data_fim) {
+      setError("As datas de início e término são obrigatórias");
+      return false;
+    }
+
+    const startDate = new Date(formData.data_inicio);
+    const endDate = new Date(formData.data_fim);
+
+    if (endDate < startDate) {
+      setError("A data de término não pode ser anterior à data de início");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
+      if (!validateForm()) {
+        setIsSubmitting(false);
+        return;
+      }
+
       console.log("Submitting form with data:", formData);
       
+      // Garantir que temos o ID da franqueadora
       if (!formData.id_franqueadora && user?.franqueadoraId) {
         formData.id_franqueadora = user.franqueadoraId;
       }
       
-      // Add extra validation to ensure we have franqueadora ID
+      // Validação final para garantir que temos o ID da franqueadora
       if (!formData.id_franqueadora) {
         console.error("Missing franqueadora ID:", { formData, user });
         toast.error("Erro ao criar pesquisa: ID da franqueadora não encontrado");
+        setError("ID da franqueadora não encontrado. Por favor, verifique seu perfil.");
         setIsSubmitting(false);
         return;
       }
@@ -106,10 +160,12 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
       if (!result.success) {
         console.error("API error response:", result.error);
         toast.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} pesquisa: ${result.error}`);
+        setError(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting form:", error);
       toast.error(`Ocorreu um erro: ${error}`);
+      setError(error.message || "Erro ao processar seu pedido");
     } finally {
       setIsSubmitting(false);
     }
@@ -117,6 +173,13 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Erro</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <div>
         <Label htmlFor="nome" className="mb-2 block">
           Nome da Pesquisa <span className="text-destructive">*</span>

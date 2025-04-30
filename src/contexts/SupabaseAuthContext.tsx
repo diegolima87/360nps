@@ -45,13 +45,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
                   console.log("No trial end date found, assuming trial is expired");
                 }
               } else {
-                console.log("No user data found");
+                console.log("No user data found, potentially a new auth user without profile");
+                toast.error("Erro ao carregar dados do usuário. Por favor, tente novamente.");
                 setUser(null);
-                setLoading(false);
+                await logoutUser(); // Logout if user data cannot be found
               }
             } catch (error) {
               console.error("Error in auth state change handler:", error);
-              setLoading(false);
+              toast.error("Erro ao carregar perfil. Por favor, faça login novamente.");
             } finally {
               setLoading(false);
             }
@@ -89,7 +90,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (success) {
         toast.success("Login realizado com sucesso!");
-        window.location.href = "/dashboard";
+        return true;
       } else {
         toast.error("Erro ao fazer login. Verifique suas credenciais.");
       }
@@ -110,6 +111,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       await logoutUser();
       setUser(null);
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Erro ao fazer logout.");

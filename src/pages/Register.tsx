@@ -52,6 +52,13 @@ export default function Register() {
       return false;
     }
     
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMessage("Por favor, forneça um email válido.");
+      return false;
+    }
+    
     // Clear any previous errors
     setErrorMessage(null);
     return true;
@@ -67,7 +74,7 @@ export default function Register() {
     
     try {
       setIsLoading(true);
-      console.log("Attempting to register user:", email);
+      console.log("Attempting to register user:", email, "as", role);
       
       const success = await register(name, email, password, role, businessName);
       
