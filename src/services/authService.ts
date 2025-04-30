@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isValidRole, UserData } from "@/types/auth.types";
@@ -21,10 +20,17 @@ export const loginUser = async (email: string, password: string): Promise<boolea
 
 export const checkUserExists = async (email: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.auth.admin.getUserByEmail(email);
+    console.log("Checking if user exists:", email);
+    
+    // Use the usuarios table to check if a user with this email exists
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+    
     if (error) {
-      // This will happen normally if the user doesn't exist
-      console.log("User lookup error (likely doesn't exist):", error);
+      console.error("Error checking if user exists:", error);
       return false;
     }
     
