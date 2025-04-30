@@ -1,34 +1,11 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "franqueadora" | "franqueado";
-  franqueadoraId?: string;
-  trialEndDate: Date;
-}
-
-interface AuthContextType {
-  user: UserData | null;
-  session: Session | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  register: (name: string, email: string, password: string, role: "franqueadora" | "franqueado") => Promise<boolean>;
-  isTrialActive: boolean;
-}
+import { AuthContextType, UserData } from "@/types/auth.types";
+import { loginUser, logoutUser, registerUser, fetchUserData } from "@/services/authService";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Helper function to validate user role
-const isValidRole = (role: string): role is "admin" | "franqueadora" | "franqueado" => {
-  return role === "admin" || role === "franqueadora" || role === "franqueado";
-};
 
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(null);
@@ -47,55 +24,17 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           // Get user data from database
           setTimeout(async () => {
             try {
-              const { data: userData, error } = await supabase
-                .from("usuarios")
-                .select("*")
-                .eq("id", session.user.id)
-                .single();
+              const userData = await fetchUserData(session.user.id);
               
-              if (error) throw error;
-              
-              // Check if subscription is active
-              const { data: subscriptionData, error: subscriptionError } = await supabase
-                .from("assinaturas")
-                .select("*")
-                .eq("id_usuario", session.user.id)
-                .single();
-              
-              if (subscriptionError && subscriptionError.code !== "PGRST116") {
-                console.error("Error fetching subscription:", subscriptionError);
+              if (userData) {
+                setUser(userData);
+                
+                // Check if trial is active
+                const isActive = new Date() < new Date(userData.trialEndDate);
+                setIsTrialActive(isActive);
+              } else {
+                setUser(null);
               }
-              
-              // Validate user role
-              const userRole = userData.role;
-              if (!isValidRole(userRole)) {
-                throw new Error(`Invalid user role: ${userRole}`);
-              }
-              
-              // Create user data object
-              const userInfo: UserData = {
-                id: session.user.id,
-                name: userData.nome,
-                email: userData.email,
-                role: userRole,
-                franqueadoraId: userData.id_franqueadora,
-                trialEndDate: subscriptionData ? new Date(subscriptionData.data_fim) : new Date(),
-              };
-              
-              setUser(userInfo);
-              
-              // Check if trial is active
-              const isActive = subscriptionData ? new Date() < new Date(subscriptionData.data_fim) : false;
-              setIsTrialActive(isActive);
-              
-              if (!isActive) {
-                toast.warning("Seu período de teste expirou. Faça upgrade para continuar usando todos os recursos.", {
-                  duration: 10000,
-                });
-              }
-            } catch (error) {
-              console.error("Error fetching user data:", error);
-              setUser(null);
             } finally {
               setLoading(false);
             }
@@ -123,90 +62,16 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) {
-        toast.error(error.message);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Login error:", error);
-      return false;
-    }
+    return await loginUser(email, password);
+  };
+
+  const logout = async (): Promise<void> => {
+    await logoutUser();
+    setUser(null);
   };
 
   const register = async (name: string, email: string, password: string, role: "franqueadora" | "franqueado"): Promise<boolean> => {
-    try {
-      // Register with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: {
-            name,
-            role
-          }
-        } 
-      });
-      
-      if (authError) {
-        toast.error(authError.message);
-        return false;
-      }
-      
-      if (authData.user) {
-        // Create user record in usuarios table
-        const { error: userError } = await supabase.from("usuarios").insert({
-          id: authData.user.id,
-          nome: name,
-          email,
-          senha: "auth_handled", // We don't store actual passwords, auth is handled by Supabase
-          role
-        });
-        
-        if (userError) {
-          console.error("Error creating user record:", userError);
-          return false;
-        }
-        
-        // Create trial subscription (7 days)
-        const now = new Date();
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 7);
-        
-        const { error: subscriptionError } = await supabase.from("assinaturas").insert({
-          id_usuario: authData.user.id,
-          data_inicio: now.toISOString(),
-          data_fim: trialEnd.toISOString(),
-          status: "ativo",
-          plano: "freemium"
-        });
-        
-        if (subscriptionError) {
-          console.error("Error creating subscription:", subscriptionError);
-        }
-        
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Registration error:", error);
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      toast.success("Você saiu com sucesso.");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    return await registerUser(name, email, password, role);
   };
 
   return (
