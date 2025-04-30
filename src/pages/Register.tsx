@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +19,16 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"franqueadora" | "franqueado">("franqueadora");
+  const [businessName, setBusinessName] = useState(""); // Nova propriedade para nome da franqueadora/unidade
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { register } = useSupabaseAuth();
+  
+  // Reset businessName when role changes for better UX
+  useEffect(() => {
+    setBusinessName("");
+  }, [role]);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,7 +37,7 @@ export default function Register() {
     
     try {
       // Simple validation
-      if (!name || !email || !password || !confirmPassword) {
+      if (!name || !email || !password || !confirmPassword || !businessName) {
         setErrorMessage("Por favor, preencha todos os campos.");
         setIsLoading(false);
         return;
@@ -49,7 +55,7 @@ export default function Register() {
         return;
       }
       
-      const success = await register(name, email, password, role);
+      const success = await register(name, email, password, role, businessName);
       
       if (success) {
         toast.success("Conta criada com sucesso! Você tem 7 dias de avaliação gratuita.");
@@ -85,7 +91,7 @@ export default function Register() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {errorMessage && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="animate-slide-in">
                   <AlertTitle>Erro</AlertTitle>
                   <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
@@ -101,6 +107,7 @@ export default function Register() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="hover-lift"
                 />
               </div>
               
@@ -114,6 +121,38 @@ export default function Register() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="hover-lift"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de conta</Label>
+                <RadioGroup value={role} onValueChange={(value) => setRole(value as "franqueadora" | "franqueado")}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="franqueadora" id="franqueadora" disabled={isLoading} />
+                    <Label htmlFor="franqueadora" className="cursor-pointer">Sou Franqueadora</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="franqueado" id="franqueado" disabled={isLoading} />
+                    <Label htmlFor="franqueado" className="cursor-pointer">Sou Franqueado</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              {/* Campo condicional de nome do negócio */}
+              <div className="space-y-2 animate-fade-in">
+                <Label htmlFor="businessName">
+                  {role === "franqueadora" ? "Nome da Franqueadora" : "Nome da Unidade Franqueada"}
+                </Label>
+                <Input 
+                  id="businessName"
+                  type="text"
+                  placeholder={role === "franqueadora" ? "Nome da sua franqueadora" : "Nome da sua unidade"}
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="hover-lift"
                 />
               </div>
               
@@ -127,6 +166,7 @@ export default function Register() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="hover-lift"
                 />
               </div>
               
@@ -140,25 +180,16 @@ export default function Register() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="hover-lift"
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Tipo de conta</Label>
-                <RadioGroup defaultValue="franqueadora" onValueChange={(value) => setRole(value as "franqueadora" | "franqueado")}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="franqueadora" id="franqueadora" disabled={isLoading} />
-                    <Label htmlFor="franqueadora" className="cursor-pointer">Sou Franqueadora</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="franqueado" id="franqueado" disabled={isLoading} />
-                    <Label htmlFor="franqueado" className="cursor-pointer">Sou Franqueado</Label>
-                  </div>
-                </RadioGroup>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full bg-gradient hover:opacity-90" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient hover:opacity-90 custom-transition" 
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 

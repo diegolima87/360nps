@@ -23,7 +23,8 @@ export const registerUser = async (
   name: string, 
   email: string, 
   password: string, 
-  role: "franqueadora" | "franqueado"
+  role: "franqueadora" | "franqueado",
+  businessName: string  // Adicionando o parâmetro de nome do negócio
 ): Promise<boolean> => {
   try {
     // Register with Supabase Auth
@@ -33,7 +34,8 @@ export const registerUser = async (
       options: {
         data: {
           name,
-          role
+          role,
+          businessName  // Adicionando ao perfil do usuário
         }
       } 
     });
@@ -63,12 +65,27 @@ export const registerUser = async (
       if (role === "franqueadora") {
         const { error: franqueadoraError } = await supabase.from("franqueadoras").insert({
           id: authData.user.id,
-          nome: name,
+          nome: businessName,  // Usando o nome da franqueadora fornecido
         });
         
         if (franqueadoraError) {
           console.error("Error creating franqueadora record:", franqueadoraError);
           toast.error("Erro ao criar registro de franqueadora: " + franqueadoraError.message);
+          return false;
+        }
+      }
+      // Create franqueado record if the role is franqueado
+      else if (role === "franqueado") {
+        const { error: franqueadoError } = await supabase.from("franqueados").insert({
+          id: authData.user.id,
+          nome: businessName,  // Usando o nome da unidade franqueada fornecido
+          email: email,
+          // id_franqueadora será definido posteriormente quando for associado a uma franqueadora
+        });
+        
+        if (franqueadoError) {
+          console.error("Error creating franqueado record:", franqueadoError);
+          toast.error("Erro ao criar registro de franqueado: " + franqueadoError.message);
           return false;
         }
       }

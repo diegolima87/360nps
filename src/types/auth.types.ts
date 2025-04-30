@@ -16,7 +16,13 @@ export interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  register: (name: string, email: string, password: string, role: "franqueadora" | "franqueado") => Promise<boolean>;
+  register: (
+    name: string, 
+    email: string, 
+    password: string, 
+    role: "franqueadora" | "franqueado",
+    businessName: string
+  ) => Promise<boolean>;
   isTrialActive: boolean;
 }
 

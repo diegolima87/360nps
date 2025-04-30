@@ -70,8 +70,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setUser(null);
   };
 
-  const register = async (name: string, email: string, password: string, role: "franqueadora" | "franqueado"): Promise<boolean> => {
-    return await registerUser(name, email, password, role);
+  const register = async (
+    name: string, 
+    email: string, 
+    password: string, 
+    role: "franqueadora" | "franqueado",
+    businessName: string // Adicionar o parâmetro de nome do negócio
+  ): Promise<boolean> => {
+    return await registerUser(name, email, password, role, businessName);
   };
 
   return (
