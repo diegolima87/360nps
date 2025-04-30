@@ -11,7 +11,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [user, setUser] = useState<UserData | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isTrialActive, setIsTrialActive] = useState(true);
+  const [isTrialActive, setIsTrialActive] = useState(false);
 
   // Handle auth state changes
   useEffect(() => {
@@ -35,9 +35,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 setUser(userData);
                 
                 // Check if trial is active
-                const isActive = new Date() < new Date(userData.trialEndDate);
-                setIsTrialActive(isActive);
-                console.log("Trial status:", isActive ? "Active" : "Expired");
+                if (userData.trialEndDate) {
+                  const isActive = new Date() < new Date(userData.trialEndDate);
+                  setIsTrialActive(isActive);
+                  console.log("Trial status:", isActive ? "Active" : "Expired");
+                } else {
+                  setIsTrialActive(false);
+                  console.log("No trial end date found, assuming trial is expired");
+                }
               } else {
                 console.log("No user data found");
                 setUser(null);

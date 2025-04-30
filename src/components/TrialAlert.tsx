@@ -29,7 +29,7 @@ export function TrialAlert() {
         <span>
           Seu período de avaliação gratuita terminou há {daysSinceEnd} {daysSinceEnd === 1 ? 'dia' : 'dias'}. Faça upgrade para continuar usando todos os recursos.
         </span>
-        <Button onClick={handleUpgrade} className="whitespace-nowrap bg-gradient">
+        <Button onClick={handleUpgrade} className="whitespace-nowrap bg-gradient" id="fazer-upgrade">
           Fazer Upgrade
         </Button>
       </AlertDescription>

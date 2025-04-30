@@ -74,7 +74,7 @@ export default function Dashboard() {
               Bem-vindo, {user?.name}. Gerencie suas pesquisas NPS.
             </p>
           </div>
-          <Button onClick={() => navigate("/survey-create")} className="bg-gradient">
+          <Button onClick={() => navigate("/survey-create")} className="bg-gradient" id="nova-pesquisa">
             <Plus className="mr-2 h-4 w-4" />
             Nova Pesquisa
           </Button>
@@ -86,7 +86,26 @@ export default function Dashboard() {
               <CardTitle>Visão Geral NPS</CardTitle>
             </CardHeader>
             <CardContent>
-              <NPSScoreDisplay data={mockNpsData} />
+              <div className="animate-fade-in">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-0">
+                  <Card className="border-0 shadow-none">
+                    <CardHeader className="pb-2 px-0 pt-0">
+                      <CardTitle className="text-xl">NPS Atual</CardTitle>
+                      <p className="text-sm text-muted-foreground">Score baseado em {mockNpsData.totalResponses} respostas</p>
+                    </CardHeader>
+                    <CardContent className="px-0">
+                      <div className="text-6xl font-bold my-4 flex items-center justify-center">
+                        <span className="text-yellow-400">
+                          {mockNpsData.score}
+                        </span>
+                      </div>
+                      <p className="text-sm text-center text-muted-foreground">
+                        Regular. Há espaço para melhorias.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </CardContent>
           </Card>
           

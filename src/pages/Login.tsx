@@ -25,6 +25,7 @@ export default function Login() {
       // Simple validation
       if (!email || !password) {
         toast.error("Por favor, preencha todos os campos.");
+        setIsLoading(false);
         return;
       }
       

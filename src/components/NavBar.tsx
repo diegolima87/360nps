@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSupabaseAuth } from "../contexts/SupabaseAuthContext";
 import { Button } from "@/components/ui/button";
 import { 
@@ -18,16 +18,113 @@ import { toast } from "sonner";
 export function NavBar() {
   const { user, logout } = useSupabaseAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
+    navigate("/login");
   };
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  const isActive = (path: string) => location.pathname === path;
+
+  // Simplified header for logged-in users
+  if (user && (location.pathname === "/dashboard" || location.pathname.startsWith("/survey"))) {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b bg-white">
+        <div className="container flex h-16 items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2">
+            <div className="bg-gradient rounded-lg w-8 h-8 flex items-center justify-center">
+              <span className="text-white font-bold">N</span>
+            </div>
+            <span className="text-xl font-bold text-gradient">NPS360</span>
+          </Link>
+
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center gap-4">
+            <Link
+              to="/dashboard"
+              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                isActive("/dashboard") 
+                ? "bg-blue-50 text-blue-600" 
+                : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/survey-create"
+              className="px-3 py-1 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900"
+            >
+              Nova Pesquisa
+            </Link>
+          </div>
+
+          {/* User Menu */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700">{user.name}</span>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-500">
+              Sair
+            </Button>
+          </div>
+          
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden"
+            aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-b pb-4">
+            <nav className="flex flex-col space-y-3 px-6">
+              <Link
+                to="/dashboard"
+                className="flex items-center py-2 text-base font-medium"
+                onClick={toggleMobileMenu}
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
+              <Link
+                to="/survey-create"
+                className="flex items-center py-2 text-base font-medium"
+                onClick={toggleMobileMenu}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Nova Pesquisa
+              </Link>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  toggleMobileMenu();
+                }}
+                className="flex items-center py-2 text-base font-medium"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </button>
+            </nav>
+          </div>
+        )}
+      </header>
+    );
+  }
+
+  // Default header for non-logged in users or other pages
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
       <div className="container flex h-16 items-center justify-between">

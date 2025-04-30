@@ -76,7 +76,7 @@ export default function SurveyList({ surveys, onSurveyDeleted }: SurveyListProps
     <div>
       <Table className="border">
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-gray-50">
             <TableHead>Nome</TableHead>
             <TableHead>Público</TableHead>
             <TableHead>Período</TableHead>
@@ -87,7 +87,7 @@ export default function SurveyList({ surveys, onSurveyDeleted }: SurveyListProps
         <TableBody>
           {surveys.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground h-32">
                 Nenhuma pesquisa encontrada. Crie sua primeira pesquisa!
               </TableCell>
             </TableRow>
