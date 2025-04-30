@@ -25,6 +25,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to validate user role
+const isValidRole = (role: string): role is "admin" | "franqueadora" | "franqueado" => {
+  return role === "admin" || role === "franqueadora" || role === "franqueado";
+};
+
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -61,12 +66,18 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 console.error("Error fetching subscription:", subscriptionError);
               }
               
+              // Validate user role
+              const userRole = userData.role;
+              if (!isValidRole(userRole)) {
+                throw new Error(`Invalid user role: ${userRole}`);
+              }
+              
               // Create user data object
               const userInfo: UserData = {
                 id: session.user.id,
                 name: userData.nome,
                 email: userData.email,
-                role: userData.role,
+                role: userRole,
                 franqueadoraId: userData.id_franqueadora,
                 trialEndDate: subscriptionData ? new Date(subscriptionData.data_fim) : new Date(),
               };
