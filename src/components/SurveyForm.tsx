@@ -1,19 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { Survey, createSurvey, updateSurvey } from "@/services/surveyService";
 import { toast } from "sonner";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import SurveyFormDetails from "./survey/SurveyFormDetails";
+import SurveyDateRange from "./survey/SurveyDateRange";
+import { FormErrorAlert } from "./survey/FormErrorAlert";
 
 interface SurveyFormProps {
   initialData?: Survey;
@@ -64,18 +59,6 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when form changes
     setError(null);
-  };
-
-  const handleStartDateSelect = (date: Date | undefined) => {
-    if (date) {
-      handleChange("data_inicio", date.toISOString().split("T")[0]);
-    }
-  };
-
-  const handleEndDateSelect = (date: Date | undefined) => {
-    if (date) {
-      handleChange("data_fim", date.toISOString().split("T")[0]);
-    }
   };
 
   const validateForm = (): boolean => {
@@ -186,137 +169,25 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     }
   }, [user]);
 
+  const isUserFranqueado = user?.role === 'franqueado';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Erro</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {error && <FormErrorAlert error={error} />}
       
-      <div>
-        <Label htmlFor="nome" className="mb-2 block">
-          Nome da Pesquisa <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="nome"
-          placeholder="Ex: Satisfação dos Franqueados Q2 2023"
-          value={formData.nome}
-          onChange={(e) => handleChange("nome", e.target.value)}
-          required
-          disabled={isSubmitting || (user?.role === 'franqueado')}
-        />
-      </div>
+      <SurveyFormDetails 
+        formData={formData} 
+        handleChange={handleChange} 
+        isSubmitting={isSubmitting} 
+        isUserFranqueado={isUserFranqueado} 
+      />
 
-      <div>
-        <Label className="mb-2 block">
-          Público-alvo <span className="text-destructive">*</span>
-        </Label>
-        <RadioGroup
-          value={formData.publico_alvo}
-          onValueChange={(value: "cliente" | "franqueado") => handleChange("publico_alvo", value)}
-          disabled={isSubmitting || (user?.role === 'franqueado')}
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="cliente" id="cliente" />
-            <Label htmlFor="cliente">Cliente</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="franqueado" id="franqueado" />
-            <Label htmlFor="franqueado">Franqueado</Label>
-          </div>
-        </RadioGroup>
-      </div>
-
-      <div>
-        <Label htmlFor="pergunta" className="mb-2 block">
-          Pergunta NPS <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          id="pergunta"
-          value={formData.pergunta}
-          onChange={(e) => handleChange("pergunta", e.target.value)}
-          className="resize-none"
-          required
-          disabled={isSubmitting || (user?.role === 'franqueado')}
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          A escala de 0-10 será exibida automaticamente.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label className="mb-2 block">
-            Data de Início <span className="text-destructive">*</span>
-          </Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-                disabled={isSubmitting || (user?.role === 'franqueado')}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.data_inicio ? 
-                  format(new Date(formData.data_inicio), "dd/MM/yyyy") : 
-                  "Selecionar data"
-                }
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formData.data_inicio ? new Date(formData.data_inicio) : undefined}
-                onSelect={handleStartDateSelect}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-                disabled={(user?.role === 'franqueado')}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div>
-          <Label className="mb-2 block">
-            Data de Término <span className="text-destructive">*</span>
-          </Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-                disabled={isSubmitting || (user?.role === 'franqueado')}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.data_fim ? 
-                  format(new Date(formData.data_fim), "dd/MM/yyyy") : 
-                  "Selecionar data"
-                }
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formData.data_fim ? new Date(formData.data_fim) : undefined}
-                onSelect={handleEndDateSelect}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-                disabled={
-                  (date) => {
-                    // Don't allow selecting dates before the start date
-                    if (formData.data_inicio) {
-                      return date < new Date(formData.data_inicio);
-                    }
-                    return false;
-                  } || (user?.role === 'franqueado')
-                }
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+      <SurveyDateRange
+        formData={formData}
+        handleChange={handleChange}
+        isSubmitting={isSubmitting}
+        isUserFranqueado={isUserFranqueado}
+      />
 
       <div className="flex gap-3 justify-end pt-4">
         <Button
@@ -328,7 +199,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         </Button>
         <Button 
           type="submit" 
-          disabled={isSubmitting || (user?.role === 'franqueado')} 
+          disabled={isSubmitting || isUserFranqueado} 
           className="bg-gradient"
         >
           {isSubmitting
