@@ -10,7 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SurveyCreate from "./pages/SurveyCreate";
+import SurveyEdit from "./pages/SurveyEdit";
 import SurveyPage from "./pages/SurveyPage";
+import SurveyResults from "./pages/SurveyResults";
 import ThankYouPage from "./pages/ThankYouPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -38,6 +40,16 @@ const App = () => (
             <Route path="/survey-create" element={
               <ProtectedRoute>
                 <SurveyCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/survey-edit/:id" element={
+              <ProtectedRoute>
+                <SurveyEdit />
+              </ProtectedRoute>
+            } />
+            <Route path="/survey-results/:id" element={
+              <ProtectedRoute>
+                <SurveyResults />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
