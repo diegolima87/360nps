@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { useSupabaseAuth } from "../contexts/SupabaseAuthContext";
 import { UserPlus } from "lucide-react";
 import NavBar from "../components/NavBar";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -18,29 +20,31 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"franqueadora" | "franqueado">("franqueadora");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { register } = useSupabaseAuth();
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
     
     try {
       // Simple validation
       if (!name || !email || !password || !confirmPassword) {
-        toast.error("Por favor, preencha todos os campos.");
+        setErrorMessage("Por favor, preencha todos os campos.");
         setIsLoading(false);
         return;
       }
       
       if (password !== confirmPassword) {
-        toast.error("As senhas não coincidem.");
+        setErrorMessage("As senhas não coincidem.");
         setIsLoading(false);
         return;
       }
       
       if (password.length < 6) {
-        toast.error("A senha deve ter pelo menos 6 caracteres.");
+        setErrorMessage("A senha deve ter pelo menos 6 caracteres.");
         setIsLoading(false);
         return;
       }
@@ -51,10 +55,10 @@ export default function Register() {
         toast.success("Conta criada com sucesso! Você tem 7 dias de avaliação gratuita.");
         navigate("/dashboard");
       } else {
-        toast.error("Erro ao criar conta.");
+        setErrorMessage("Erro ao criar conta. Verifique suas informações e tente novamente.");
       }
-    } catch (error) {
-      toast.error("Ocorreu um erro ao processar seu cadastro.");
+    } catch (error: any) {
+      setErrorMessage(`Erro ao processar seu cadastro: ${error?.message || "Erro desconhecido"}`);
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -66,7 +70,7 @@ export default function Register() {
       <NavBar />
       
       <div className="flex-grow flex items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md shadow-lg">
+        <Card className="w-full max-w-md shadow-lg animate-fade-in">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <div className="h-12 w-12 bg-gradient rounded-full flex items-center justify-center">
@@ -80,6 +84,13 @@ export default function Register() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {errorMessage && (
+                <Alert variant="destructive">
+                  <AlertTitle>Erro</AlertTitle>
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="name">Nome completo</Label>
                 <Input 
@@ -89,6 +100,7 @@ export default function Register() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
@@ -101,6 +113,7 @@ export default function Register() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
@@ -113,6 +126,7 @@ export default function Register() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
@@ -125,6 +139,7 @@ export default function Register() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
@@ -132,11 +147,11 @@ export default function Register() {
                 <Label>Tipo de conta</Label>
                 <RadioGroup defaultValue="franqueadora" onValueChange={(value) => setRole(value as "franqueadora" | "franqueado")}>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="franqueadora" id="franqueadora" />
+                    <RadioGroupItem value="franqueadora" id="franqueadora" disabled={isLoading} />
                     <Label htmlFor="franqueadora" className="cursor-pointer">Sou Franqueadora</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="franqueado" id="franqueado" />
+                    <RadioGroupItem value="franqueado" id="franqueado" disabled={isLoading} />
                     <Label htmlFor="franqueado" className="cursor-pointer">Sou Franqueado</Label>
                   </div>
                 </RadioGroup>
@@ -144,7 +159,12 @@ export default function Register() {
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <Button type="submit" className="w-full bg-gradient hover:opacity-90" disabled={isLoading}>
-                {isLoading ? "Cadastrando..." : "Criar Conta"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                    Cadastrando...
+                  </>
+                ) : "Criar Conta"}
               </Button>
               <div className="text-center text-sm">
                 Já tem uma conta?{" "}

@@ -55,7 +55,22 @@ export const registerUser = async (
       
       if (userError) {
         console.error("Error creating user record:", userError);
+        toast.error("Erro ao criar perfil de usuário: " + userError.message);
         return false;
+      }
+      
+      // Create franqueadora record if the role is franqueadora
+      if (role === "franqueadora") {
+        const { error: franqueadoraError } = await supabase.from("franqueadoras").insert({
+          id: authData.user.id,
+          nome: name,
+        });
+        
+        if (franqueadoraError) {
+          console.error("Error creating franqueadora record:", franqueadoraError);
+          toast.error("Erro ao criar registro de franqueadora: " + franqueadoraError.message);
+          return false;
+        }
       }
       
       // Create trial subscription (7 days)
@@ -73,14 +88,17 @@ export const registerUser = async (
       
       if (subscriptionError) {
         console.error("Error creating subscription:", subscriptionError);
+        toast.error("Erro ao criar assinatura: " + subscriptionError.message);
+        return false;
       }
       
       return true;
     }
     
     return false;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error);
+    toast.error(`Erro ao criar conta: ${error?.message || "Erro desconhecido"}`);
     return false;
   }
 };
