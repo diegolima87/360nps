@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -304,13 +303,15 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
                 onSelect={handleEndDateSelect}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
-                disabled={(date) => {
-                  // Don't allow selecting dates before the start date
-                  if (formData.data_inicio) {
-                    return date < new Date(formData.data_inicio);
-                  }
-                  return false;
-                } || (user?.role === 'franqueado')}
+                disabled={
+                  (date) => {
+                    // Don't allow selecting dates before the start date
+                    if (formData.data_inicio) {
+                      return date < new Date(formData.data_inicio);
+                    }
+                    return false;
+                  } || (user?.role === 'franqueado')
+                }
               />
             </PopoverContent>
           </Popover>
