@@ -19,53 +19,66 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"franqueadora" | "franqueado">("franqueadora");
-  const [businessName, setBusinessName] = useState(""); // Nova propriedade para nome da franqueadora/unidade
+  const [businessName, setBusinessName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { register } = useSupabaseAuth();
+  const { register, loading } = useSupabaseAuth();
   
   // Reset businessName when role changes for better UX
   useEffect(() => {
     setBusinessName("");
   }, [role]);
+
+  // Update loading state based on context
+  useEffect(() => {
+    setIsLoading(loading);
+  }, [loading]);
+  
+  const validateForm = () => {
+    // Simple validation
+    if (!name || !email || !password || !confirmPassword || !businessName) {
+      setErrorMessage("Por favor, preencha todos os campos.");
+      return false;
+    }
+    
+    if (password !== confirmPassword) {
+      setErrorMessage("As senhas não coincidem.");
+      return false;
+    }
+    
+    if (password.length < 6) {
+      setErrorMessage("A senha deve ter pelo menos 6 caracteres.");
+      return false;
+    }
+    
+    // Clear any previous errors
+    setErrorMessage(null);
+    return true;
+  };
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage(null);
     
+    if (!validateForm()) {
+      return;
+    }
+    
     try {
-      // Simple validation
-      if (!name || !email || !password || !confirmPassword || !businessName) {
-        setErrorMessage("Por favor, preencha todos os campos.");
-        setIsLoading(false);
-        return;
-      }
-      
-      if (password !== confirmPassword) {
-        setErrorMessage("As senhas não coincidem.");
-        setIsLoading(false);
-        return;
-      }
-      
-      if (password.length < 6) {
-        setErrorMessage("A senha deve ter pelo menos 6 caracteres.");
-        setIsLoading(false);
-        return;
-      }
+      setIsLoading(true);
+      console.log("Attempting to register user:", email);
       
       const success = await register(name, email, password, role, businessName);
       
+      console.log("Registration result:", success);
+      
       if (success) {
-        toast.success("Conta criada com sucesso! Você tem 7 dias de avaliação gratuita.");
         navigate("/dashboard");
-      } else {
-        setErrorMessage("Erro ao criar conta. Verifique suas informações e tente novamente.");
       }
     } catch (error: any) {
+      console.error("Error in registration submit handler:", error);
       setErrorMessage(`Erro ao processar seu cadastro: ${error?.message || "Erro desconhecido"}`);
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +152,6 @@ export default function Register() {
                 </RadioGroup>
               </div>
               
-              {/* Campo condicional de nome do negócio */}
               <div className="space-y-2 animate-fade-in">
                 <Label htmlFor="businessName">
                   {role === "franqueadora" ? "Nome da Franqueadora" : "Nome da Unidade Franqueada"}

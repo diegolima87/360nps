@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isValidRole, UserData } from "@/types/auth.types";
@@ -18,15 +19,53 @@ export const loginUser = async (email: string, password: string): Promise<boolea
   }
 };
 
+export const checkUserExists = async (email: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.auth.admin.getUserByEmail(email);
+    if (error) {
+      // This will happen normally if the user doesn't exist
+      console.log("User lookup error (likely doesn't exist):", error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.log("Error checking if user exists:", error);
+    return false;
+  }
+};
+
 export const registerUser = async (
   name: string, 
   email: string, 
   password: string, 
   role: "franqueadora" | "franqueado",
   businessName: string
-): Promise<boolean> => {
+): Promise<{ success: boolean; error?: string }> => {
   try {
-    // Step 1: Register user with Supabase Auth
+    console.log(`Starting registration for ${email} as ${role}...`);
+    
+    // Step 1: Check if the user already exists
+    const { data: existingUsers, error: lookupError } = await supabase
+      .from("usuarios")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+    
+    if (lookupError) {
+      console.error("Error checking for existing user:", lookupError);
+    }
+    
+    if (existingUsers) {
+      console.log("User already exists:", email);
+      return { 
+        success: false, 
+        error: "Este email já está cadastrado. Tente fazer login ou recuperar sua senha." 
+      };
+    }
+    
+    // Step 2: Register user with Supabase Auth
+    console.log("Creating auth user...");
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -41,16 +80,23 @@ export const registerUser = async (
     
     if (authError) {
       console.error("Auth registration error:", authError);
-      throw authError;
+      return {
+        success: false,
+        error: authError.message || "Erro ao criar conta. Por favor, tente novamente."
+      };
     }
-    
-    console.log("Auth registration successful:", authData);
     
     if (!authData.user) {
-      throw new Error("User data not returned from auth signup");
+      console.error("No user data returned from auth signup");
+      return {
+        success: false,
+        error: "Dados de usuário não retornados. Por favor, tente novamente."
+      };
     }
     
-    // Step 2: Create franqueadora if role is franqueadora
+    console.log("Auth user created successfully:", authData.user.id);
+    
+    // Step 3: Create franqueadora if role is franqueadora
     let franqueadoraId: string | null = null;
     
     if (role === "franqueadora") {
@@ -65,14 +111,15 @@ export const registerUser = async (
       
       if (franqueadoraError) {
         console.error("Franqueadora creation error:", franqueadoraError);
-        throw franqueadoraError;
+        // We don't return here, we continue to register the user but log the error
+        console.log("Continuing with user registration despite franqueadora error");
+      } else {
+        console.log("Franqueadora creation successful:", franqueadoraData);
+        franqueadoraId = franqueadoraData.id;
       }
-      
-      console.log("Franqueadora creation successful:", franqueadoraData);
-      franqueadoraId = franqueadoraData.id;
     }
     
-    // Step 3: Create user record in usuarios table
+    // Step 4: Create user record in usuarios table
     console.log("Creating usuario record");
     const { error: userError } = await supabase
       .from("usuarios")
@@ -89,10 +136,22 @@ export const registerUser = async (
     
     if (userError) {
       console.error("User creation error:", userError);
-      throw userError;
+      
+      // Try to cleanup the auth user since we failed to create the database record
+      try {
+        console.log("Attempting to clean up auth user after database error");
+        await supabase.auth.admin.deleteUser(authData.user.id);
+      } catch (cleanupError) {
+        console.error("Failed to clean up auth user:", cleanupError);
+      }
+      
+      return {
+        success: false,
+        error: userError.message || "Erro ao criar perfil de usuário. Por favor, tente novamente."
+      };
     }
     
-    // Step 4: Set up trial period (7 days)
+    // Step 5: Set up trial period (7 days)
     const today = new Date();
     const trialEndDate = new Date();
     trialEndDate.setDate(today.getDate() + 7); // Set trial for 7 days
@@ -112,15 +171,18 @@ export const registerUser = async (
     
     if (assinaturaError) {
       console.error("Assinatura creation error:", assinaturaError);
-      throw assinaturaError;
+      // We don't fail the whole registration for this, but log the error
     }
     
     console.log("Registration process completed successfully!");
-    return true;
+    return { success: true };
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error);
-    return false;
+    return { 
+      success: false, 
+      error: error.message || "Erro desconhecido ao criar conta. Por favor, tente novamente."
+    };
   }
 };
 

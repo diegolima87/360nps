@@ -4,6 +4,7 @@ import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthContextType, UserData } from "@/types/auth.types";
 import { loginUser, logoutUser, registerUser, fetchUserData } from "@/services/authService";
+import { toast } from "sonner";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -24,7 +25,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setSession(session);
         
         if (session?.user) {
-          // Get user data from database
+          // Get user data from database - use setTimeout to avoid blocking UI
           setTimeout(async () => {
             try {
               console.log("Fetching user data after auth change");
@@ -46,9 +47,11 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
               } else {
                 console.log("No user data found");
                 setUser(null);
+                setLoading(false);
               }
             } catch (error) {
               console.error("Error in auth state change handler:", error);
+              setLoading(false);
             } finally {
               setLoading(false);
             }
@@ -79,20 +82,40 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log("Login attempt for:", email);
-    const success = await loginUser(email, password);
+    setLoading(true);
     
-    // Redirect to dashboard on successful login
-    if (success) {
-      window.location.href = "/dashboard";
+    try {
+      const success = await loginUser(email, password);
+      
+      if (success) {
+        toast.success("Login realizado com sucesso!");
+        window.location.href = "/dashboard";
+      } else {
+        toast.error("Erro ao fazer login. Verifique suas credenciais.");
+      }
+      
+      return success;
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Ocorreu um erro ao processar seu login.");
+      return false;
+    } finally {
+      setLoading(false);
     }
-    
-    return success;
   };
 
   const logout = async (): Promise<void> => {
     console.log("Logout initiated");
-    await logoutUser();
-    setUser(null);
+    setLoading(true);
+    try {
+      await logoutUser();
+      setUser(null);
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Erro ao fazer logout.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const register = async (
@@ -103,7 +126,26 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     businessName: string
   ): Promise<boolean> => {
     console.log("Register attempt for:", email, "as", role);
-    return await registerUser(name, email, password, role, businessName);
+    setLoading(true);
+    
+    try {
+      const { success, error } = await registerUser(name, email, password, role, businessName);
+      
+      if (!success) {
+        console.error("Registration failed:", error);
+        toast.error(error || "Falha ao criar conta. Tente novamente.");
+        return false;
+      }
+      
+      toast.success("Conta criada com sucesso! Você tem 7 dias de avaliação gratuita.");
+      return true;
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Erro inesperado ao criar conta.");
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
