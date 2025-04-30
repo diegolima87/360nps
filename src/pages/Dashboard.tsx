@@ -13,17 +13,17 @@ import TrialAlert from "../components/TrialAlert";
 import NPSScoreDisplay from "../components/NPSScoreDisplay";
 import { NPSChart } from "../components/NPSChart";
 import { CommentsList } from "../components/CommentsList";
-import { NPSRating, calculateNPS } from "../components/NPSCalculator";
+import { NPSRating, calculateNPS, Respondent } from "../components/NPSCalculator";
 
 // Mock data for dashboard
 const MOCK_RATINGS: NPSRating[] = [10, 9, 10, 8, 7, 6, 5, 9, 10, 2, 8, 9, 4, 10];
 
 const MOCK_COMMENTS = [
-  { id: "1", rating: 10, type: "promotor", text: "Excelente atendimento e suporte da franqueadora!", date: new Date(2023, 3, 15) },
-  { id: "2", rating: 8, type: "passivo", text: "Bom serviço, mas poderia ter mais treinamentos.", date: new Date(2023, 3, 14) },
-  { id: "3", rating: 4, type: "detrator", text: "Dificuldade em obter suporte quando precisei.", date: new Date(2023, 3, 12) },
-  { id: "4", rating: 9, type: "promotor", text: "Muito satisfeito com os processos e materiais oferecidos.", date: new Date(2023, 3, 10) },
-  { id: "5", rating: 6, type: "detrator", text: "Precisa melhorar o tempo de resposta.", date: new Date(2023, 3, 5) },
+  { id: "1", rating: 10, type: "promotor" as Respondent, text: "Excelente atendimento e suporte da franqueadora!", date: new Date(2023, 3, 15) },
+  { id: "2", rating: 8, type: "passivo" as Respondent, text: "Bom serviço, mas poderia ter mais treinamentos.", date: new Date(2023, 3, 14) },
+  { id: "3", rating: 4, type: "detrator" as Respondent, text: "Dificuldade em obter suporte quando precisei.", date: new Date(2023, 3, 12) },
+  { id: "4", rating: 9, type: "promotor" as Respondent, text: "Muito satisfeito com os processos e materiais oferecidos.", date: new Date(2023, 3, 10) },
+  { id: "5", rating: 6, type: "detrator" as Respondent, text: "Precisa melhorar o tempo de resposta.", date: new Date(2023, 3, 5) },
 ];
 
 export default function Dashboard() {
