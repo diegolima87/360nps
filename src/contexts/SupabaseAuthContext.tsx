@@ -15,31 +15,41 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Handle auth state changes
   useEffect(() => {
+    console.log("Setting up auth state listener");
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        console.log("Auth state changed:", _event, session?.user?.id);
         setSession(session);
         
         if (session?.user) {
           // Get user data from database
           setTimeout(async () => {
             try {
+              console.log("Fetching user data after auth change");
               const userData = await fetchUserData(session.user.id);
               
               if (userData) {
+                console.log("User data loaded:", userData);
                 setUser(userData);
                 
                 // Check if trial is active
                 const isActive = new Date() < new Date(userData.trialEndDate);
                 setIsTrialActive(isActive);
+                console.log("Trial status:", isActive ? "Active" : "Expired");
               } else {
+                console.log("No user data found");
                 setUser(null);
               }
+            } catch (error) {
+              console.error("Error in auth state change handler:", error);
             } finally {
               setLoading(false);
             }
           }, 0);
         } else {
+          console.log("No active session");
           setUser(null);
           setLoading(false);
         }
@@ -48,6 +58,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check:", session?.user?.id);
       if (session) {
         setSession(session);
         // User data is fetched in onAuthStateChange
@@ -62,10 +73,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log("Login attempt for:", email);
     return await loginUser(email, password);
   };
 
   const logout = async (): Promise<void> => {
+    console.log("Logout initiated");
     await logoutUser();
     setUser(null);
   };
@@ -75,8 +88,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     email: string, 
     password: string, 
     role: "franqueadora" | "franqueado",
-    businessName: string // Adicionar o parâmetro de nome do negócio
+    businessName: string
   ): Promise<boolean> => {
+    console.log("Register attempt for:", email, "as", role);
     return await registerUser(name, email, password, role, businessName);
   };
 
