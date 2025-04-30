@@ -13,6 +13,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Survey, createSurvey, updateSurvey } from "@/services/surveyService";
 import { toast } from "sonner";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 interface SurveyFormProps {
   initialData?: Survey;
@@ -21,6 +22,7 @@ interface SurveyFormProps {
 
 export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) {
   const navigate = useNavigate();
+  const { user } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState<Omit<Survey, "id" | "link">>({
@@ -29,6 +31,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     publico_alvo: "cliente",
     data_inicio: new Date().toISOString().split("T")[0],
     data_fim: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split("T")[0],
+    id_franqueadora: user?.id_franqueadora || undefined
   });
 
   useEffect(() => {
@@ -39,10 +42,16 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         publico_alvo: initialData.publico_alvo,
         data_inicio: initialData.data_inicio,
         data_fim: initialData.data_fim,
-        id_franqueadora: initialData.id_franqueadora,
+        id_franqueadora: initialData.id_franqueadora || user?.id_franqueadora,
       });
+    } else if (user) {
+      // Set id_franqueadora if user is set but initialData is not
+      setFormData(prev => ({
+        ...prev,
+        id_franqueadora: user.id_franqueadora
+      }));
     }
-  }, [initialData, isEditing]);
+  }, [initialData, isEditing, user]);
 
   const handleChange = (field: keyof typeof formData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -65,6 +74,12 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     setIsSubmitting(true);
 
     try {
+      console.log("Submitting form with data:", formData);
+      
+      if (!formData.id_franqueadora && user?.id_franqueadora) {
+        formData.id_franqueadora = user.id_franqueadora;
+      }
+      
       let result;
       
       if (isEditing && initialData) {
@@ -85,6 +100,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         toast.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} pesquisa: ${result.error}`);
       }
     } catch (error) {
+      console.error("Error submitting form:", error);
       toast.error(`Ocorreu um erro: ${error}`);
     } finally {
       setIsSubmitting(false);
@@ -216,7 +232,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="bg-gradient">
           {isSubmitting
             ? "Salvando..."
             : isEditing

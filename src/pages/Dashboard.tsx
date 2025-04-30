@@ -11,9 +11,9 @@ import { Survey, listSurveys } from "@/services/surveyService";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { NPSResult } from "@/components/NPSCalculator";
 import { NPSChart } from "@/components/NPSChart";
-import NPSScoreDisplay from "@/components/NPSScoreDisplay";
 import { Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const mockNpsData: NPSResult = {
   score: 42,
@@ -34,7 +34,7 @@ const chartData = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useSupabaseAuth();
+  const { user, isTrialActive } = useSupabaseAuth();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -45,9 +45,11 @@ export default function Dashboard() {
       const { success, data, error } = await listSurveys();
       
       if (success && data) {
+        console.log("Surveys loaded:", data.length);
         setSurveys(data);
       } else {
         console.error("Erro ao carregar pesquisas:", error);
+        toast.error(`Erro ao carregar pesquisas: ${error}`);
       }
     } catch (err) {
       console.error("Erro ao carregar pesquisas:", err);
@@ -67,14 +69,19 @@ export default function Dashboard() {
       <main className="flex-grow container py-6">
         <TrialAlert />
         
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">
               Bem-vindo, {user?.name}. Gerencie suas pesquisas NPS.
             </p>
           </div>
-          <Button onClick={() => navigate("/survey-create")} className="bg-gradient" id="nova-pesquisa">
+          <Button 
+            onClick={() => navigate("/survey-create")} 
+            className="bg-gradient" 
+            id="nova-pesquisa"
+            disabled={!isTrialActive}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nova Pesquisa
           </Button>

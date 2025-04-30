@@ -38,7 +38,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 if (userData.trialEndDate) {
                   const isActive = new Date() < new Date(userData.trialEndDate);
                   setIsTrialActive(isActive);
-                  console.log("Trial status:", isActive ? "Active" : "Expired");
+                  console.log("Trial status:", isActive ? "Active" : "Expired", "End date:", userData.trialEndDate);
                 } else {
                   setIsTrialActive(false);
                   console.log("No trial end date found, assuming trial is expired");
@@ -79,7 +79,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log("Login attempt for:", email);
-    return await loginUser(email, password);
+    const success = await loginUser(email, password);
+    
+    // Redirect to dashboard on successful login
+    if (success) {
+      window.location.href = "/dashboard";
+    }
+    
+    return success;
   };
 
   const logout = async (): Promise<void> => {

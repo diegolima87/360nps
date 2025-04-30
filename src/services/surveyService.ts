@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { NPSRating } from "@/components/NPSCalculator";
 
 // Tipos para pesquisas
@@ -33,6 +32,8 @@ export interface SurveyResult {
 // Criar nova pesquisa
 export const createSurvey = async (survey: Omit<Survey, "id" | "link">): Promise<{ success: boolean; data?: Survey; error?: string }> => {
   try {
+    console.log("Creating survey:", survey);
+    
     // Gera um link único para a pesquisa
     const uniqueId = Math.random().toString(36).substring(2, 10);
     const link = `${window.location.origin}/survey/${uniqueId}`;
@@ -46,7 +47,12 @@ export const createSurvey = async (survey: Omit<Survey, "id" | "link">): Promise
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error from Supabase:", error);
+      throw error;
+    }
+    
+    console.log("Survey created successfully:", data);
     
     // Converter o tipo dos dados para garantir consistência
     const typedData: Survey = {
@@ -64,12 +70,18 @@ export const createSurvey = async (survey: Omit<Survey, "id" | "link">): Promise
 // Listar pesquisas
 export const listSurveys = async (): Promise<{ success: boolean; data?: Survey[]; error?: string }> => {
   try {
+    console.log("Fetching surveys");
     const { data, error } = await supabase
       .from("pesquisas")
       .select("*")
       .order("data_inicio", { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error from Supabase:", error);
+      throw error;
+    }
+    
+    console.log("Surveys fetched successfully:", data);
     
     // Converter o tipo dos dados para garantir consistência
     const typedData: Survey[] = data.map(item => ({

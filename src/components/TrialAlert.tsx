@@ -11,7 +11,7 @@ export function TrialAlert() {
   if (isTrialActive || !user) return null;
   
   // Calculate days since trial ended
-  const trialEnd = new Date(user.trialEndDate);
+  const trialEnd = user.trialEndDate ? new Date(user.trialEndDate) : new Date();
   const today = new Date();
   const daysSinceEnd = Math.floor((today.getTime() - trialEnd.getTime()) / (1000 * 60 * 60 * 24));
   
@@ -27,7 +27,8 @@ export function TrialAlert() {
       <AlertTitle>Seu período de avaliação expirou!</AlertTitle>
       <AlertDescription className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mt-2">
         <span>
-          Seu período de avaliação gratuita terminou há {daysSinceEnd} {daysSinceEnd === 1 ? 'dia' : 'dias'}. Faça upgrade para continuar usando todos os recursos.
+          Seu período de avaliação gratuita terminou {daysSinceEnd > 0 ? `há ${daysSinceEnd} ${daysSinceEnd === 1 ? 'dia' : 'dias'}` : 'hoje'}. 
+          Faça upgrade para continuar usando todos os recursos.
         </span>
         <Button onClick={handleUpgrade} className="whitespace-nowrap bg-gradient" id="fazer-upgrade">
           Fazer Upgrade
