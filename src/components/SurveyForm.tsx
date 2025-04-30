@@ -31,7 +31,7 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     publico_alvo: "cliente",
     data_inicio: new Date().toISOString().split("T")[0],
     data_fim: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split("T")[0],
-    id_franqueadora: user?.id_franqueadora || undefined
+    id_franqueadora: user?.franqueadoraId || undefined
   });
 
   useEffect(() => {
@@ -42,13 +42,13 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
         publico_alvo: initialData.publico_alvo,
         data_inicio: initialData.data_inicio,
         data_fim: initialData.data_fim,
-        id_franqueadora: initialData.id_franqueadora || user?.id_franqueadora,
+        id_franqueadora: initialData.id_franqueadora || user?.franqueadoraId,
       });
     } else if (user) {
       // Set id_franqueadora if user is set but initialData is not
       setFormData(prev => ({
         ...prev,
-        id_franqueadora: user.id_franqueadora
+        id_franqueadora: user.franqueadoraId
       }));
     }
   }, [initialData, isEditing, user]);
@@ -76,8 +76,8 @@ export default function SurveyForm({ initialData, isEditing }: SurveyFormProps) 
     try {
       console.log("Submitting form with data:", formData);
       
-      if (!formData.id_franqueadora && user?.id_franqueadora) {
-        formData.id_franqueadora = user.id_franqueadora;
+      if (!formData.id_franqueadora && user?.franqueadoraId) {
+        formData.id_franqueadora = user.franqueadoraId;
       }
       
       let result;
