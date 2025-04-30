@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserData } from "@/types/auth.types";
+import { UserData, isValidRole } from "@/types/auth.types";
 
 /**
  * Checks if a user exists by email in the usuarios table
@@ -112,12 +112,20 @@ export const fetchUserData = async (userId: string): Promise<UserData | null> =>
     
     console.log("Subscription data retrieved:", subscriptionData);
     
+    // Validate role value from database
+    const userRole = userData.role;
+    if (!isValidRole(userRole)) {
+      console.error("Invalid role received from database:", userRole);
+      // Default to franqueado if role is not valid
+      userData.role = "franqueado";
+    }
+    
     // Format and return user data with subscription info
     return {
       id: userData.id,
       name: userData.nome,
       email: userData.email,
-      role: userData.role,
+      role: userData.role as "admin" | "franqueadora" | "franqueado",
       franqueadoraId: userData.id_franqueadora,
       trialEndDate: subscriptionData?.data_fim || null,
       subscriptionStatus: subscriptionData?.status || "inativo",
